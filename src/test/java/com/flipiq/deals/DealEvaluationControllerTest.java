@@ -7,8 +7,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 import com.flipiq.deals.api.DealEvaluationController;
+import com.flipiq.deals.model.AiDealReviewResponse;
 import com.flipiq.deals.model.DealEvaluationResponse;
 import com.flipiq.deals.service.DealEvaluationService;
 import org.junit.jupiter.api.Test;
@@ -33,18 +35,35 @@ class DealEvaluationControllerTest {
 				"123 Main Street",
 				new BigDecimal("90000.00"),
 				new BigDecimal("250000.00"),
+				new BigDecimal("250000.00"),
+				new BigDecimal("0.70"),
 				new BigDecimal("0.70"),
 				new BigDecimal("175000.00"),
+				new BigDecimal("35000.00"),
+				new BigDecimal("35000.00"),
 				new BigDecimal("35000.00"),
 				new BigDecimal("15000.00"),
 				new BigDecimal("15000.00"),
 				new BigDecimal("7000.00"),
+				new BigDecimal("0.00"),
 				new BigDecimal("25000.00"),
 				new BigDecimal("162000.00"),
 				new BigDecimal("93000.00"),
+				new BigDecimal("140000.00"),
+				true,
 				new BigDecimal("88000.00"),
+				new BigDecimal("54.32"),
+				new BigDecimal("35.20"),
 				new BigDecimal("3000.00"),
-				"REVIEW"));
+				95,
+				"A",
+				"Low",
+				List.of(),
+				"Strong Buy",
+				null,
+				null,
+				null,
+				List.of()));
 
 		mockMvc.perform(post("/api/deals/evaluate")
 						.contentType(MediaType.APPLICATION_JSON)
@@ -62,8 +81,37 @@ class DealEvaluationControllerTest {
 								"""))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.maximumOffer").value(93000.00))
+				.andExpect(jsonPath("$.maximumAllowableOffer").value(140000.00))
+				.andExpect(jsonPath("$.isOfferAcceptable").value(true))
 				.andExpect(jsonPath("$.projectedProfit").value(88000.00))
-				.andExpect(jsonPath("$.recommendation").value("REVIEW"));
+				.andExpect(jsonPath("$.dealScore").value(95))
+				.andExpect(jsonPath("$.scoreGrade").value("A"))
+				.andExpect(jsonPath("$.recommendation").value("Strong Buy"));
+	}
+
+	@Test
+	void returnsAiReviewForValidRequest() throws Exception {
+		when(dealEvaluationService.analyzeAi(any())).thenReturn(new AiDealReviewResponse(
+				"This deal has a projected profit of $88000.00 and an ROI of 54.32%.",
+				List.of("Positive projected profit"),
+				List.of("Financing costs reduce projected returns"),
+				"Strong Buy"));
+
+		mockMvc.perform(post("/api/deals/analyze-ai")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{
+								  "propertyAddress": "123 Main Street",
+								  "purchasePrice": 90000,
+								  "arv": 250000,
+								  "repairCost": 35000
+								}
+								"""))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.summary").value("This deal has a projected profit of $88000.00 and an ROI of 54.32%."))
+				.andExpect(jsonPath("$.strengths[0]").value("Positive projected profit"))
+				.andExpect(jsonPath("$.warnings[0]").value("Financing costs reduce projected returns"))
+				.andExpect(jsonPath("$.recommendation").value("Strong Buy"));
 	}
 
 	@Test
