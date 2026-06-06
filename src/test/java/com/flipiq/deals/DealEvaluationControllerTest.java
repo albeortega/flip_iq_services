@@ -2,7 +2,9 @@ package com.flipiq.deals;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -112,6 +114,18 @@ class DealEvaluationControllerTest {
 				.andExpect(jsonPath("$.strengths[0]").value("Positive projected profit"))
 				.andExpect(jsonPath("$.warnings[0]").value("Financing costs reduce projected returns"))
 				.andExpect(jsonPath("$.recommendation").value("Strong Buy"));
+	}
+
+	@Test
+	void allowsCorsPreflightForEvaluationEndpoint() throws Exception {
+		mockMvc.perform(options("/api/deals/evaluate")
+						.header("Origin", "https://flip-iq.example")
+						.header("Access-Control-Request-Method", "POST")
+						.header("Access-Control-Request-Headers", "content-type"))
+				.andExpect(status().isOk())
+				.andExpect(header().string("Access-Control-Allow-Origin", "https://flip-iq.example"))
+				.andExpect(header().string("Access-Control-Allow-Methods", org.hamcrest.Matchers.containsString("POST")))
+				.andExpect(header().string("Access-Control-Allow-Headers", org.hamcrest.Matchers.containsString("content-type")));
 	}
 
 	@Test
