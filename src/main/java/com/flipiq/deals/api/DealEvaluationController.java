@@ -2,6 +2,7 @@ package com.flipiq.deals.api;
 
 import com.flipiq.deals.model.DealEvaluationRequest;
 import com.flipiq.deals.model.DealEvaluationResponse;
+import com.flipiq.deals.model.AiDealReviewResponse;
 import com.flipiq.deals.service.DealEvaluationService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -25,5 +26,11 @@ public class DealEvaluationController {
 	@ResponseStatus(HttpStatus.OK)
 	public DealEvaluationResponse evaluate(@Valid @RequestBody DealEvaluationRequest request) {
 		return dealEvaluationService.evaluate(request);
+	}
+
+	@PostMapping("/analyze-ai")
+	@ResponseStatus(HttpStatus.OK)
+	public AiDealReviewResponse analyzeAi(@Valid @RequestBody DealEvaluationRequest request) {
+		return dealEvaluationService.analyzeAi(request);
 	}
 }
