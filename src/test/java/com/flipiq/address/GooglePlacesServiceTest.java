@@ -38,6 +38,15 @@ class GooglePlacesServiceTest {
 	}
 
 	@Test
+	void requiresConfiguredApiKey() {
+		GooglePlacesService service = new GooglePlacesService("", "https://places.test/v1", RestClient.builder());
+
+		assertThatThrownBy(() -> service.autocomplete("1600 Pennsylvania", "session-123"))
+				.isInstanceOf(AddressSearchConfigurationException.class)
+				.hasMessage("GOOGLE_MAPS_API_KEY is not configured for address search.");
+	}
+
+	@Test
 	void mapsGoogleAutocompleteSuggestions() {
 		RestClient.Builder builder = RestClient.builder();
 		MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();

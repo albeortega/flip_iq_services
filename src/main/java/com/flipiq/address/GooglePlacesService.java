@@ -22,11 +22,13 @@ public class GooglePlacesService {
 			};
 
 	private final RestClient restClient;
+	private final boolean apiKeyConfigured;
 
 	public GooglePlacesService(
 			@Value("${google.maps.api-key}") String apiKey,
 			@Value("${google.maps.places-base-url}") String placesBaseUrl,
 			RestClient.Builder restClientBuilder) {
+		this.apiKeyConfigured = apiKey != null && !apiKey.isBlank();
 		this.restClient = restClientBuilder
 				.baseUrl(placesBaseUrl)
 				.defaultHeader("X-Goog-Api-Key", apiKey)
@@ -34,6 +36,8 @@ public class GooglePlacesService {
 	}
 
 	public List<AddressSuggestion> autocomplete(String input, String sessionToken) {
+		requireConfiguredApiKey();
+
 		String trimmedInput = input == null ? "" : input.trim();
 		if (trimmedInput.length() < 3) {
 			return List.of();
@@ -58,6 +62,8 @@ public class GooglePlacesService {
 	}
 
 	public AddressDetails getPlaceDetails(String placeId, String sessionToken) {
+		requireConfiguredApiKey();
+
 		requireText(placeId, "placeId");
 		requireText(sessionToken, "sessionToken");
 
@@ -148,6 +154,12 @@ public class GooglePlacesService {
 	private void requireText(String value, String fieldName) {
 		if (value == null || value.isBlank()) {
 			throw new IllegalArgumentException("%s is required".formatted(fieldName));
+		}
+	}
+
+	private void requireConfiguredApiKey() {
+		if (!apiKeyConfigured) {
+			throw new AddressSearchConfigurationException("GOOGLE_MAPS_API_KEY is not configured for address search.");
 		}
 	}
 
