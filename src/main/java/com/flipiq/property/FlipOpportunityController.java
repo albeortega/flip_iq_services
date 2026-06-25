@@ -1,7 +1,5 @@
 package com.flipiq.property;
 
-import java.math.BigDecimal;
-
 import com.flipiq.property.dto.FlipOpportunityResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,26 +24,14 @@ public class FlipOpportunityController {
 	public FlipOpportunityResponse search(
 			@RequestParam String zipCode,
 			@RequestParam(required = false) Integer radius,
-			@RequestParam(required = false) Integer limit,
-			@RequestParam(required = false) BigDecimal minProfit,
-			@RequestParam(required = false) BigDecimal minRoi,
-			@RequestParam(required = false) BigDecimal minDiscount,
 			@RequestParam(required = false, defaultValue = "BEST_FLIP_SCORE") FlipOpportunitySort sort) {
 		log.info(
-				"Flip opportunities API entered: zipCode={}, radius={}, limit={}, minProfit={}, minRoi={}, minDiscount={}, sort={}",
+				"Flip opportunities API entered: zipCode={}, radius={}, sort={}",
 				zipCode,
 				radius,
-				limit,
-				minProfit,
-				minRoi,
-				minDiscount,
 				sort);
 		FlipOpportunityResponse response = flipOpportunityService.search(
 				zipCode,
-				limit,
-				minProfit,
-				minRoi,
-				minDiscount,
 				sort);
 		log.info(
 				"Flip opportunities API completed: zipCode={}, count={}, sort={}",

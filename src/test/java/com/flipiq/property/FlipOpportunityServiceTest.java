@@ -62,17 +62,12 @@ class FlipOpportunityServiceTest {
 
 		var response = service.search(
 				"33101",
-				25,
-				null,
-				null,
-				null,
 				FlipOpportunitySort.BEST_FLIP_SCORE);
 
 		assertThat(response.zipCode()).isEqualTo("33101");
-		assertThat(response.count()).isEqualTo(1);
+		assertThat(response.count()).isEqualTo(2);
 		assertThat(response.sort()).isEqualTo("BEST_FLIP_SCORE");
-		assertThat(response.filters().minProfit()).isEqualByComparingTo("25000");
-		assertThat(response.properties()).hasSize(1);
+		assertThat(response.properties()).hasSize(2);
 		var property = response.properties().getFirst();
 		assertThat(property.id()).isEqualTo("listing-1");
 		assertThat(property.address()).isEqualTo("123 Main St, Miami, FL 33101");
@@ -99,7 +94,7 @@ class FlipOpportunityServiceTest {
 				RestClient.builder());
 		FlipOpportunityService service = new FlipOpportunityService(listingsClient, new FlipScoreCalculator());
 
-		assertThatThrownBy(() -> service.search("33101", null, null, null, null, null))
+		assertThatThrownBy(() -> service.search("33101", null))
 				.isInstanceOf(PropertyEnrichmentConfigurationException.class)
 				.hasMessage("RENTCAST_API_KEY is not configured for property enrichment.");
 	}
@@ -112,7 +107,7 @@ class FlipOpportunityServiceTest {
 				RestClient.builder());
 		FlipOpportunityService service = new FlipOpportunityService(listingsClient, new FlipScoreCalculator());
 
-		assertThatThrownBy(() -> service.search("3310", null, null, null, null, null))
+		assertThatThrownBy(() -> service.search("3310", null))
 				.isInstanceOf(IllegalArgumentException.class)
 				.hasMessage("Please enter a valid 5-digit ZIP code.");
 	}
