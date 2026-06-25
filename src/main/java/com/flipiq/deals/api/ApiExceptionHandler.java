@@ -3,6 +3,7 @@ package com.flipiq.deals.api;
 import java.util.List;
 
 import com.flipiq.address.AddressSearchConfigurationException;
+import com.flipiq.property.PropertyEnrichmentConfigurationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -48,17 +49,24 @@ public class ApiExceptionHandler {
 				? List.of(exception.getStatusText())
 				: List.of(exception.getStatusText(), truncate(responseBody));
 		log.error(
-				"Address search provider error: statusCode={}, statusText='{}', responseBody='{}'",
+				"External provider error: statusCode={}, statusText='{}', responseBody='{}'",
 				exception.getStatusCode(),
 				exception.getStatusText(),
 				truncate(responseBody == null ? "" : responseBody));
-		return new ApiErrorResponse("Address search provider returned an error.", errors);
+		return new ApiErrorResponse("External property data provider returned an error.", errors);
 	}
 
 	@ExceptionHandler(AddressSearchConfigurationException.class)
 	@ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
 	public ApiErrorResponse handleAddressSearchConfiguration(AddressSearchConfigurationException exception) {
 		log.error("Address search configuration error: {}", exception.getMessage());
+		return new ApiErrorResponse(exception.getMessage(), List.of());
+	}
+
+	@ExceptionHandler(PropertyEnrichmentConfigurationException.class)
+	@ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+	public ApiErrorResponse handlePropertyEnrichmentConfiguration(PropertyEnrichmentConfigurationException exception) {
+		log.error("Property enrichment configuration error: {}", exception.getMessage());
 		return new ApiErrorResponse(exception.getMessage(), List.of());
 	}
 
