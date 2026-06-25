@@ -56,6 +56,14 @@ class FlipOpportunityServiceTest {
 						    "squareFootage": 1800,
 						    "yearBuilt": 1970,
 						    "daysOnMarket": 10
+						  },
+						  {
+						    "id": "listing-3",
+						    "formattedAddress": "789 Missing Value Rd, Miami, FL 33101",
+						    "price": 250000,
+						    "squareFootage": 1200,
+						    "yearBuilt": 2008,
+						    "daysOnMarket": 5
 						  }
 						]
 						""", MediaType.APPLICATION_JSON));
@@ -65,9 +73,9 @@ class FlipOpportunityServiceTest {
 				FlipOpportunitySort.BEST_FLIP_SCORE);
 
 		assertThat(response.zipCode()).isEqualTo("33101");
-		assertThat(response.count()).isEqualTo(2);
+		assertThat(response.count()).isEqualTo(3);
 		assertThat(response.sort()).isEqualTo("BEST_FLIP_SCORE");
-		assertThat(response.properties()).hasSize(2);
+		assertThat(response.properties()).hasSize(3);
 		var property = response.properties().getFirst();
 		assertThat(property.id()).isEqualTo("listing-1");
 		assertThat(property.address()).isEqualTo("123 Main St, Miami, FL 33101");
@@ -83,6 +91,17 @@ class FlipOpportunityServiceTest {
 		assertThat(property.rehabRisk()).isEqualTo("Medium");
 		assertThat(property.flipScore()).isGreaterThanOrEqualTo(70);
 		assertThat(property.highlights()).contains("Estimated $68,500 profit", "Price dropped $30,000");
+		var missingValueProperty = response.properties().stream()
+				.filter(result -> result.id().equals("listing-3"))
+				.findFirst()
+				.orElseThrow();
+		assertThat(missingValueProperty.estimatedValue()).isNull();
+		assertThat(missingValueProperty.estimatedProfit()).isNull();
+		assertThat(missingValueProperty.roiPercent()).isNull();
+		assertThat(missingValueProperty.discountPercent()).isNull();
+		assertThat(missingValueProperty.flipScore()).isNull();
+		assertThat(missingValueProperty.recommendation()).isEqualTo("Needs Review");
+		assertThat(missingValueProperty.highlights()).contains("RentCast did not include estimated value.");
 		server.verify();
 	}
 

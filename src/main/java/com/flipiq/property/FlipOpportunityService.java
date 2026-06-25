@@ -47,15 +47,9 @@ public class FlipOpportunityService {
 
 		List<Map<String, Object>> listings = listingsClient.getActiveSaleListings(cleanZipCode);
 		List<FlipOpportunityPropertyDto> calculatedProperties = new ArrayList<>();
-		int missingRequiredDataCount = 0;
 
 		for (Map<String, Object> listing : listings) {
 			FlipOpportunityPropertyDto property = toOpportunity(listing, cleanZipCode);
-			if (property == null) {
-				missingRequiredDataCount++;
-				continue;
-			}
-
 			log.info(
 					"Flip opportunity calculated: zipCode={}, address='{}', listPrice={}, estimatedValue={}, estimatedRehabCost={}, closingCosts={}, holdingCosts={}, estimatedProfit={}, roiPercent={}, discountPercent={}, priceDropAmount={}, daysOnMarket={}, rehabRisk={}, flipScore={}, recommendation='{}'",
 					cleanZipCode,
@@ -82,11 +76,10 @@ public class FlipOpportunityService {
 				.toList();
 
 		log.info(
-				"Flip opportunities search completed: zipCode={}, rawListings={}, returnedCount={}, missingRequiredDataCount={}",
+				"Flip opportunities search completed: zipCode={}, rawListings={}, returnedCount={}",
 				cleanZipCode,
 				listings.size(),
-				properties.size(),
-				missingRequiredDataCount);
+				properties.size());
 		return new FlipOpportunityResponse(
 				cleanZipCode,
 				properties.size(),
@@ -109,52 +102,54 @@ public class FlipOpportunityService {
 				listing.get("squareFootage"),
 				listing.get("buildingArea"));
 
-		if (listPrice == null || estimatedValue == null || livingArea == null || livingArea <= 0) {
-			log.info(
-					"Skipping listing with insufficient flip data: address='{}', listPrice={}, estimatedValue={}, livingArea={}, keys={}, rawListing={}",
-					address(listing),
-					listPrice,
-					estimatedValue,
-					livingArea,
-					listing.keySet(),
-					toJson(listing));
-			return null;
-		}
-
 		Integer yearBuilt = firstInteger(listing.get("yearBuilt"));
 		String rehabRisk = rehabRisk(yearBuilt);
-		BigDecimal estimatedRehabCost = rehabCostPerSquareFoot(rehabRisk)
-				.multiply(BigDecimal.valueOf(livingArea))
-				.setScale(0, RoundingMode.HALF_UP);
-		BigDecimal closingCosts = listPrice.multiply(BigDecimal.valueOf(0.04)).setScale(0, RoundingMode.HALF_UP);
-		BigDecimal holdingCosts = listPrice.multiply(BigDecimal.valueOf(0.025)).setScale(0, RoundingMode.HALF_UP);
-		BigDecimal estimatedProfit = estimatedValue
-				.subtract(listPrice)
-				.subtract(estimatedRehabCost)
-				.subtract(closingCosts)
-				.subtract(holdingCosts)
-				.setScale(0, RoundingMode.HALF_UP);
-		BigDecimal totalCashNeeded = listPrice.add(estimatedRehabCost).add(closingCosts).add(holdingCosts);
-		BigDecimal roiPercent = totalCashNeeded.compareTo(BigDecimal.ZERO) == 0
-				? BigDecimal.ZERO
+		BigDecimal estimatedRehabCost = livingArea == null || livingArea <= 0
+				? null
+				: rehabCostPerSquareFoot(rehabRisk)
+						.multiply(BigDecimal.valueOf(livingArea))
+						.setScale(0, RoundingMode.HALF_UP);
+		BigDecimal closingCosts = listPrice == null
+				? null
+				: listPrice.multiply(BigDecimal.valueOf(0.04)).setScale(0, RoundingMode.HALF_UP);
+		BigDecimal holdingCosts = listPrice == null
+				? null
+				: listPrice.multiply(BigDecimal.valueOf(0.025)).setScale(0, RoundingMode.HALF_UP);
+		BigDecimal estimatedProfit = listPrice == null || estimatedValue == null || estimatedRehabCost == null
+				|| closingCosts == null || holdingCosts == null
+				? null
+				: estimatedValue
+						.subtract(listPrice)
+						.subtract(estimatedRehabCost)
+						.subtract(closingCosts)
+						.subtract(holdingCosts)
+						.setScale(0, RoundingMode.HALF_UP);
+		BigDecimal totalCashNeeded = listPrice == null || estimatedRehabCost == null || closingCosts == null || holdingCosts == null
+				? null
+				: listPrice.add(estimatedRehabCost).add(closingCosts).add(holdingCosts);
+		BigDecimal roiPercent = estimatedProfit == null || totalCashNeeded == null || totalCashNeeded.compareTo(BigDecimal.ZERO) == 0
+				? null
 				: estimatedProfit.divide(totalCashNeeded, 6, RoundingMode.HALF_UP)
 						.multiply(BigDecimal.valueOf(100))
 						.setScale(1, RoundingMode.HALF_UP);
-		BigDecimal discountPercent = estimatedValue.compareTo(BigDecimal.ZERO) == 0
-				? BigDecimal.ZERO
+		BigDecimal discountPercent = estimatedValue == null || listPrice == null || estimatedValue.compareTo(BigDecimal.ZERO) == 0
+				? null
 				: estimatedValue.subtract(listPrice)
 						.divide(estimatedValue, 6, RoundingMode.HALF_UP)
 						.multiply(BigDecimal.valueOf(100))
 						.setScale(1, RoundingMode.HALF_UP);
 		BigDecimal priceDropAmount = priceDropAmount(listing, listPrice);
 		Integer daysOnMarket = daysOnMarket(listing);
-		int flipScore = flipScoreCalculator.calculate(
+		Integer flipScore = estimatedProfit == null || discountPercent == null
+				? null
+				: flipScoreCalculator.calculate(
 				estimatedProfit,
 				roiPercent,
 				discountPercent,
 				daysOnMarket,
 				priceDropAmount,
 				rehabRisk);
+		String recommendation = flipScore == null ? "Needs Review" : flipScoreCalculator.recommendation(flipScore);
 
 		return new FlipOpportunityPropertyDto(
 				firstText(asString(listing.get("id")), asString(listing.get("listingId")), generatedId(listing)),
@@ -181,8 +176,8 @@ public class FlipOpportunityService {
 				firstDouble(listing.get("latitude")),
 				firstDouble(listing.get("longitude")),
 				flipScore,
-				flipScoreCalculator.recommendation(flipScore),
-				highlights(estimatedProfit, discountPercent, priceDropAmount));
+				recommendation,
+				highlights(estimatedProfit, discountPercent, priceDropAmount, estimatedValue, livingArea));
 	}
 
 	private Comparator<FlipOpportunityPropertyDto> comparator(FlipOpportunitySort sort) {
@@ -256,7 +251,7 @@ public class FlipOpportunityService {
 				listing.get("originalPrice"),
 				listing.get("initialListPrice"),
 				listing.get("previousPrice"));
-		if (originalPrice == null) {
+		if (originalPrice == null || listPrice == null) {
 			return BigDecimal.ZERO;
 		}
 		return originalPrice.subtract(listPrice).max(BigDecimal.ZERO);
@@ -299,12 +294,27 @@ public class FlipOpportunityService {
 		return UUID.nameUUIDFromBytes(address(listing).getBytes()).toString();
 	}
 
-	private List<String> highlights(BigDecimal estimatedProfit, BigDecimal discountPercent, BigDecimal priceDropAmount) {
+	private List<String> highlights(
+			BigDecimal estimatedProfit,
+			BigDecimal discountPercent,
+			BigDecimal priceDropAmount,
+			BigDecimal estimatedValue,
+			Integer livingArea) {
 		List<String> highlights = new ArrayList<>();
-		highlights.add("Estimated $%,.0f profit".formatted(estimatedProfit));
-		highlights.add("%s%% below estimated value".formatted(discountPercent.stripTrailingZeros().toPlainString()));
+		if (estimatedProfit != null) {
+			highlights.add("Estimated $%,.0f profit".formatted(estimatedProfit));
+		}
+		if (discountPercent != null) {
+			highlights.add("%s%% below estimated value".formatted(discountPercent.stripTrailingZeros().toPlainString()));
+		}
 		if (priceDropAmount.compareTo(BigDecimal.ZERO) > 0) {
 			highlights.add("Price dropped $%,.0f".formatted(priceDropAmount));
+		}
+		if (estimatedValue == null) {
+			highlights.add("RentCast did not include estimated value.");
+		}
+		if (livingArea == null || livingArea <= 0) {
+			highlights.add("RentCast did not include living area.");
 		}
 		return highlights;
 	}
