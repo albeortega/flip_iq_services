@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,6 +22,7 @@ public class RentCastListingsClient {
 	private static final ParameterizedTypeReference<List<Map<String, Object>>> LISTINGS_RESPONSE =
 			new ParameterizedTypeReference<>() {
 			};
+	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
 	private final RestClient restClient;
 	private final boolean apiKeyConfigured;
@@ -51,13 +54,14 @@ public class RentCastListingsClient {
 			int count = response == null ? 0 : response.size();
 			log.info("RentCast sale listings completed: zipCode={}, resultCount={}", zipCode, count);
 			if (response != null && !response.isEmpty()) {
+				log.info("RentCast sale listings raw response JSON: zipCode={}, rawResponse={}", zipCode, toJson(response));
 				log.info("RentCast sale listings first result keys: zipCode={}, keys={}", zipCode, response.getFirst().keySet());
 				response.stream()
-						.limit(3)
+						.limit(10)
 						.forEach(listing -> log.info(
-								"RentCast sale listings sample result: zipCode={}, listingPreview={}",
+								"RentCast sale listings raw item JSON: zipCode={}, rawItem={}",
 								zipCode,
-								preview(listing)));
+								toJson(listing)));
 			}
 			return response == null ? List.of() : response;
 		} catch (RestClientResponseException exception) {
@@ -92,5 +96,14 @@ public class RentCastListingsClient {
 			return string.substring(0, 160) + "...";
 		}
 		return value;
+	}
+
+	private String toJson(Object value) {
+		try {
+			return OBJECT_MAPPER.writeValueAsString(value);
+		} catch (JsonProcessingException exception) {
+			log.warn("Could not serialize RentCast response for logging: {}", exception.getMessage());
+			return String.valueOf(value);
+		}
 	}
 }

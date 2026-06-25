@@ -12,6 +12,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flipiq.property.dto.FlipOpportunityPropertyDto;
 import com.flipiq.property.dto.FlipOpportunityResponse;
 import org.slf4j.Logger;
@@ -22,6 +24,7 @@ import org.springframework.stereotype.Service;
 public class FlipOpportunityService {
 
 	private static final Logger log = LoggerFactory.getLogger(FlipOpportunityService.class);
+	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
 	private final RentCastListingsClient listingsClient;
 	private final FlipScoreCalculator flipScoreCalculator;
@@ -108,12 +111,13 @@ public class FlipOpportunityService {
 
 		if (listPrice == null || estimatedValue == null || livingArea == null || livingArea <= 0) {
 			log.info(
-					"Skipping listing with insufficient flip data: address='{}', listPrice={}, estimatedValue={}, livingArea={}, keys={}",
+					"Skipping listing with insufficient flip data: address='{}', listPrice={}, estimatedValue={}, livingArea={}, keys={}, rawListing={}",
 					address(listing),
 					listPrice,
 					estimatedValue,
 					livingArea,
-					listing.keySet());
+					listing.keySet(),
+					toJson(listing));
 			return null;
 		}
 
@@ -406,6 +410,15 @@ public class FlipOpportunityService {
 			return LocalDate.parse(value);
 		} catch (DateTimeParseException ignored) {
 			return null;
+		}
+	}
+
+	private String toJson(Object value) {
+		try {
+			return OBJECT_MAPPER.writeValueAsString(value);
+		} catch (JsonProcessingException exception) {
+			log.warn("Could not serialize listing for logging: {}", exception.getMessage());
+			return String.valueOf(value);
 		}
 	}
 }
