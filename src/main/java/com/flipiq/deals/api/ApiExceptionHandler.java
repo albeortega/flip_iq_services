@@ -2,6 +2,9 @@ package com.flipiq.deals.api;
 
 import java.util.List;
 
+import com.flipiq.address.AddressSearchConfigurationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -12,6 +15,8 @@ import org.springframework.web.client.RestClientResponseException;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+
+	private static final Logger log = LoggerFactory.getLogger(ApiExceptionHandler.class);
 
 	@ExceptionHandler(MethodArgumentNotValidException.class)
 	@ResponseStatus(HttpStatus.BAD_REQUEST)
@@ -31,12 +36,33 @@ public class ApiExceptionHandler {
 	})
 	@ResponseStatus(HttpStatus.BAD_REQUEST)
 	public ApiErrorResponse handleBadRequest(Exception exception) {
+		log.warn("Bad API request: {}", exception.getMessage());
 		return new ApiErrorResponse(exception.getMessage(), List.of());
 	}
 
 	@ExceptionHandler(RestClientResponseException.class)
 	@ResponseStatus(HttpStatus.BAD_GATEWAY)
 	public ApiErrorResponse handleUpstreamGoogleError(RestClientResponseException exception) {
-		return new ApiErrorResponse("Address search provider returned an error.", List.of(exception.getStatusText()));
+		String responseBody = exception.getResponseBodyAsString();
+		List<String> errors = responseBody == null || responseBody.isBlank()
+				? List.of(exception.getStatusText())
+				: List.of(exception.getStatusText(), truncate(responseBody));
+		log.error(
+				"Address search provider error: statusCode={}, statusText='{}', responseBody='{}'",
+				exception.getStatusCode(),
+				exception.getStatusText(),
+				truncate(responseBody == null ? "" : responseBody));
+		return new ApiErrorResponse("Address search provider returned an error.", errors);
+	}
+
+	@ExceptionHandler(AddressSearchConfigurationException.class)
+	@ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+	public ApiErrorResponse handleAddressSearchConfiguration(AddressSearchConfigurationException exception) {
+		log.error("Address search configuration error: {}", exception.getMessage());
+		return new ApiErrorResponse(exception.getMessage(), List.of());
+	}
+
+	private String truncate(String value) {
+		return value.length() <= 1000 ? value : value.substring(0, 1000);
 	}
 }
