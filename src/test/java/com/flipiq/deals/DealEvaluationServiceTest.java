@@ -22,14 +22,13 @@ class DealEvaluationServiceTest {
 				new BigDecimal("35000"),
 				new BigDecimal("8000"),
 				new BigDecimal("15000"),
-				new BigDecimal("7000"),
-				new BigDecimal("25000")));
+				new BigDecimal("7000")));
 
 		assertThat(response.ruleValue()).isEqualByComparingTo("175000.00");
-		assertThat(response.maximumOffer()).isEqualByComparingTo("93000.00");
+		assertThat(response.maximumOffer()).isEqualByComparingTo("118000.00");
 		assertThat(response.totalProjectCost()).isEqualByComparingTo("155000.00");
 		assertThat(response.projectedProfit()).isEqualByComparingTo("95000.00");
-		assertThat(response.offerSpread()).isEqualByComparingTo("3000.00");
+		assertThat(response.offerSpread()).isEqualByComparingTo("28000.00");
 		assertThat(response.maximumAllowableOffer()).isEqualByComparingTo("140000.00");
 		assertThat(response.isOfferAcceptable()).isTrue();
 		assertThat(response.dealScore()).isEqualTo(100);

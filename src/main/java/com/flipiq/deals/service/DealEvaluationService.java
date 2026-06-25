@@ -27,15 +27,13 @@ public class DealEvaluationService {
 		BigDecimal holdingCosts = moneyOrZero(request.holdingCosts());
 		BigDecimal sellingCosts = moneyOrZero(request.sellingCosts());
 		BigDecimal closingCosts = moneyOrZero(request.closingCosts());
-		BigDecimal profitBuffer = moneyOrZero(request.profitBuffer());
 		BigDecimal financingCosts = moneyOrZero(request.financingCosts());
 		BigDecimal ruleValue = money(afterRepairValue.multiply(maoRulePercentage));
 		BigDecimal maximumAllowableOffer = money(ruleValue.subtract(rehabCosts));
 		BigDecimal maximumOffer = money(maximumAllowableOffer
 				.subtract(holdingCosts)
 				.subtract(sellingCosts)
-				.subtract(closingCosts)
-				.subtract(profitBuffer));
+				.subtract(closingCosts));
 		BigDecimal totalProjectCost = money(purchasePrice
 				.add(rehabCosts)
 				.add(financingCosts)
@@ -69,7 +67,6 @@ public class DealEvaluationService {
 				holdingCosts,
 				sellingCosts,
 				closingCosts,
-				profitBuffer,
 				totalProjectCost,
 				maximumOffer,
 				maximumAllowableOffer,

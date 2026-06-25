@@ -1,0 +1,11 @@
+package com.flipiq.property;
+
+public enum FlipOpportunitySort {
+	BEST_FLIP_SCORE,
+	HIGHEST_PROFIT,
+	HIGHEST_ROI,
+	BIGGEST_DISCOUNT,
+	LOWEST_LIST_PRICE,
+	NEWEST_LISTING,
+	BIGGEST_PRICE_DROP
+}

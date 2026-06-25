@@ -48,7 +48,6 @@ class DealEvaluationControllerTest {
 				new BigDecimal("15000.00"),
 				new BigDecimal("7000.00"),
 				new BigDecimal("0.00"),
-				new BigDecimal("25000.00"),
 				new BigDecimal("162000.00"),
 				new BigDecimal("93000.00"),
 				new BigDecimal("140000.00"),
@@ -77,8 +76,7 @@ class DealEvaluationControllerTest {
 								  "rehabCosts": 35000,
 								  "financingCosts": 15000,
 								  "holdingCosts": 15000,
-								  "sellingCosts": 7000,
-								  "profitBuffer": 25000
+								  "sellingCosts": 7000
 								}
 								"""))
 				.andExpect(status().isOk())
