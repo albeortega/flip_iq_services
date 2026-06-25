@@ -2,6 +2,7 @@ package com.flipiq.property;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,6 +50,15 @@ public class RentCastListingsClient {
 					.body(LISTINGS_RESPONSE);
 			int count = response == null ? 0 : response.size();
 			log.info("RentCast sale listings completed: zipCode={}, resultCount={}", zipCode, count);
+			if (response != null && !response.isEmpty()) {
+				log.info("RentCast sale listings first result keys: zipCode={}, keys={}", zipCode, response.getFirst().keySet());
+				response.stream()
+						.limit(3)
+						.forEach(listing -> log.info(
+								"RentCast sale listings sample result: zipCode={}, listingPreview={}",
+								zipCode,
+								preview(listing)));
+			}
 			return response == null ? List.of() : response;
 		} catch (RestClientResponseException exception) {
 			if (exception.getStatusCode().isSameCodeAs(HttpStatus.NOT_FOUND)) {
@@ -64,5 +74,23 @@ public class RentCastListingsClient {
 			log.error("RentCast listings configuration failed: RENTCAST_API_KEY is not configured");
 			throw new PropertyEnrichmentConfigurationException("RENTCAST_API_KEY is not configured for property enrichment.");
 		}
+	}
+
+	private Map<String, Object> preview(Map<String, Object> listing) {
+		return listing.entrySet()
+				.stream()
+				.limit(20)
+				.collect(Collectors.toMap(
+						Map.Entry::getKey,
+						entry -> truncate(entry.getValue()),
+						(left, right) -> left,
+						java.util.LinkedHashMap::new));
+	}
+
+	private Object truncate(Object value) {
+		if (value instanceof String string && string.length() > 160) {
+			return string.substring(0, 160) + "...";
+		}
+		return value;
 	}
 }

@@ -1,6 +1,5 @@
 package com.flipiq.property;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -31,19 +30,11 @@ class FlipOpportunityControllerTest {
 	void returnsFlipOpportunitiesForZipCode() throws Exception {
 		when(flipOpportunityService.search(
 				eq("33101"),
-				eq(10),
-				any(),
-				any(),
-				any(),
 				eq(FlipOpportunitySort.HIGHEST_PROFIT)))
 				.thenReturn(new FlipOpportunityResponse(
 						"33101",
 						1,
 						"HIGHEST_PROFIT",
-						new FlipOpportunityResponse.Filters(
-								new BigDecimal("25000"),
-								new BigDecimal("10"),
-								new BigDecimal("5")),
 						List.of(new FlipOpportunityPropertyDto(
 								"listing-1",
 								"123 Main St, Miami, FL 33101",
@@ -74,13 +65,11 @@ class FlipOpportunityControllerTest {
 
 		mockMvc.perform(get("/api/properties/flip-opportunities")
 						.queryParam("zipCode", "33101")
-						.queryParam("limit", "10")
 						.queryParam("sort", "HIGHEST_PROFIT"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.zipCode").value("33101"))
 				.andExpect(jsonPath("$.count").value(1))
 				.andExpect(jsonPath("$.sort").value("HIGHEST_PROFIT"))
-				.andExpect(jsonPath("$.filters.minProfit").value(25000))
 				.andExpect(jsonPath("$.properties[0].address").value("123 Main St, Miami, FL 33101"))
 				.andExpect(jsonPath("$.properties[0].estimatedProfit").value(68500))
 				.andExpect(jsonPath("$.properties[0].flipScore").value(82))

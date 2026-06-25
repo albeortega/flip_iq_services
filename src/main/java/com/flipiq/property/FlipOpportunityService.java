@@ -10,7 +10,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.UUID;
 
 import com.flipiq.property.dto.FlipOpportunityPropertyDto;
@@ -23,10 +22,6 @@ import org.springframework.stereotype.Service;
 public class FlipOpportunityService {
 
 	private static final Logger log = LoggerFactory.getLogger(FlipOpportunityService.class);
-	private static final BigDecimal DEFAULT_MIN_PROFIT = BigDecimal.valueOf(25000);
-	private static final BigDecimal DEFAULT_MIN_ROI = BigDecimal.TEN;
-	private static final BigDecimal DEFAULT_MIN_DISCOUNT = BigDecimal.valueOf(5);
-	private static final int DEFAULT_LIMIT = 25;
 
 	private final RentCastListingsClient listingsClient;
 	private final FlipScoreCalculator flipScoreCalculator;
@@ -38,48 +33,61 @@ public class FlipOpportunityService {
 
 	public FlipOpportunityResponse search(
 			String zipCode,
-			Integer limit,
-			BigDecimal minProfit,
-			BigDecimal minRoi,
-			BigDecimal minDiscount,
 			FlipOpportunitySort sort) {
 		String cleanZipCode = requireZipCode(zipCode);
-		int cleanLimit = normalizeLimit(limit);
-		BigDecimal profitFilter = minProfit == null ? DEFAULT_MIN_PROFIT : minProfit;
-		BigDecimal roiFilter = minRoi == null ? DEFAULT_MIN_ROI : minRoi;
-		BigDecimal discountFilter = minDiscount == null ? DEFAULT_MIN_DISCOUNT : minDiscount;
 		FlipOpportunitySort cleanSort = sort == null ? FlipOpportunitySort.BEST_FLIP_SCORE : sort;
 
 		log.info(
-				"Flip opportunities search started: zipCode={}, limit={}, minProfit={}, minRoi={}, minDiscount={}, sort={}",
+				"Flip opportunities search started: zipCode={}, sort={}",
 				cleanZipCode,
-				cleanLimit,
-				profitFilter,
-				roiFilter,
-				discountFilter,
 				cleanSort);
 
 		List<Map<String, Object>> listings = listingsClient.getActiveSaleListings(cleanZipCode);
-		List<FlipOpportunityPropertyDto> properties = listings.stream()
-				.map(listing -> toOpportunity(listing, cleanZipCode))
-				.filter(Objects::nonNull)
-				.filter(property -> property.estimatedProfit().compareTo(profitFilter) > 0)
-				.filter(property -> property.roiPercent().compareTo(roiFilter) > 0)
-				.filter(property -> property.discountPercent().compareTo(discountFilter) > 0)
+		List<FlipOpportunityPropertyDto> calculatedProperties = new ArrayList<>();
+		int missingRequiredDataCount = 0;
+
+		for (Map<String, Object> listing : listings) {
+			FlipOpportunityPropertyDto property = toOpportunity(listing, cleanZipCode);
+			if (property == null) {
+				missingRequiredDataCount++;
+				continue;
+			}
+
+			log.info(
+					"Flip opportunity calculated: zipCode={}, address='{}', listPrice={}, estimatedValue={}, estimatedRehabCost={}, closingCosts={}, holdingCosts={}, estimatedProfit={}, roiPercent={}, discountPercent={}, priceDropAmount={}, daysOnMarket={}, rehabRisk={}, flipScore={}, recommendation='{}'",
+					cleanZipCode,
+					property.address(),
+					property.listPrice(),
+					property.estimatedValue(),
+					property.estimatedRehabCost(),
+					property.closingCosts(),
+					property.holdingCosts(),
+					property.estimatedProfit(),
+					property.roiPercent(),
+					property.discountPercent(),
+					property.priceDropAmount(),
+					property.daysOnMarket(),
+					property.rehabRisk(),
+					property.flipScore(),
+					property.recommendation());
+
+			calculatedProperties.add(property);
+		}
+
+		List<FlipOpportunityPropertyDto> properties = calculatedProperties.stream()
 				.sorted(comparator(cleanSort))
-				.limit(cleanLimit)
 				.toList();
 
 		log.info(
-				"Flip opportunities search completed: zipCode={}, rawListings={}, filteredCount={}",
+				"Flip opportunities search completed: zipCode={}, rawListings={}, returnedCount={}, missingRequiredDataCount={}",
 				cleanZipCode,
 				listings.size(),
-				properties.size());
+				properties.size(),
+				missingRequiredDataCount);
 		return new FlipOpportunityResponse(
 				cleanZipCode,
 				properties.size(),
 				cleanSort.name(),
-				new FlipOpportunityResponse.Filters(profitFilter, roiFilter, discountFilter),
 				properties);
 	}
 
@@ -99,7 +107,13 @@ public class FlipOpportunityService {
 				listing.get("buildingArea"));
 
 		if (listPrice == null || estimatedValue == null || livingArea == null || livingArea <= 0) {
-			log.info("Skipping listing with insufficient flip data: keys={}", listing.keySet());
+			log.info(
+					"Skipping listing with insufficient flip data: address='{}', listPrice={}, estimatedValue={}, livingArea={}, keys={}",
+					address(listing),
+					listPrice,
+					estimatedValue,
+					livingArea,
+					listing.keySet());
 			return null;
 		}
 
@@ -202,13 +216,6 @@ public class FlipOpportunityService {
 			throw new IllegalArgumentException("Please enter a valid 5-digit ZIP code.");
 		}
 		return zipCode;
-	}
-
-	private int normalizeLimit(Integer limit) {
-		if (limit == null) {
-			return DEFAULT_LIMIT;
-		}
-		return Math.max(1, Math.min(100, limit));
 	}
 
 	private String rehabRisk(Integer yearBuilt) {
