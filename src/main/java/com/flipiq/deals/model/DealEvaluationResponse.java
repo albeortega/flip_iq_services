@@ -19,7 +19,6 @@ public record DealEvaluationResponse(
 		BigDecimal holdingCosts,
 		BigDecimal sellingCosts,
 		BigDecimal closingCosts,
-		BigDecimal profitBuffer,
 		BigDecimal totalProjectCost,
 		BigDecimal maximumOffer,
 		BigDecimal maximumAllowableOffer,

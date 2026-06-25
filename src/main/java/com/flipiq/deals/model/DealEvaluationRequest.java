@@ -15,7 +15,6 @@ public record DealEvaluationRequest(
 		@DecimalMin(value = "0.00") BigDecimal financingCosts,
 		@DecimalMin(value = "0.00") BigDecimal holdingCosts,
 		@DecimalMin(value = "0.00") BigDecimal sellingCosts,
-		@DecimalMin(value = "0.00") BigDecimal profitBuffer,
 		@DecimalMin(value = "0.01") BigDecimal maoRulePercentage,
 		@DecimalMin(value = "0.00") BigDecimal closingCosts) {
 
@@ -26,9 +25,8 @@ public record DealEvaluationRequest(
 			BigDecimal rehabCosts,
 			BigDecimal financingCosts,
 			BigDecimal holdingCosts,
-			BigDecimal sellingCosts,
-			BigDecimal profitBuffer) {
+			BigDecimal sellingCosts) {
 		this(propertyAddress, purchasePrice, afterRepairValue, rehabCosts, financingCosts, holdingCosts, sellingCosts,
-				profitBuffer, null, null);
+				null, null);
 	}
 }
