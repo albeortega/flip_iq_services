@@ -40,13 +40,45 @@ class FlipOpportunityServiceTest {
 						    "price": 300000,
 						    "estimatedValue": 460000,
 						    "squareFootage": 1600,
+						    "lotSize": 5000,
 						    "yearBuilt": 1988,
+						    "hoa": { "fee": 125 },
+						    "status": "Active",
+						    "listingType": "Standard",
+						    "listedDate": "2024-06-24T00:00:00.000Z",
+						    "lastSeenDate": "2024-09-30T13:11:47.157Z",
+						    "mlsName": "MiamiMLS",
+						    "mlsNumber": "A123456",
+						    "listingAgent": {
+						      "name": "Jane Agent",
+						      "phone": "5551234567",
+						      "email": "jane@example.com"
+						    },
+						    "listingOffice": {
+						      "name": "Example Realty",
+						      "phone": "5557654321"
+						    },
 						    "bedrooms": 3,
 						    "bathrooms": 2,
 						    "latitude": 25.7617,
 						    "longitude": -80.1918,
 						    "daysOnMarket": 42,
-						    "originalPrice": 330000
+						    "history": {
+						      "2024-06-24": {
+						        "event": "Sale Listing",
+						        "price": 330000,
+						        "listingType": "Standard",
+						        "listedDate": "2024-06-24T00:00:00.000Z",
+						        "daysOnMarket": 42
+						      },
+						      "2024-08-01": {
+						        "event": "Price Change",
+						        "price": 300000,
+						        "listingType": "Standard",
+						        "listedDate": "2024-06-24T00:00:00.000Z",
+						        "daysOnMarket": 42
+						      }
+						    }
 						  },
 						  {
 						    "id": "listing-2",
@@ -88,6 +120,17 @@ class FlipOpportunityServiceTest {
 		assertThat(property.roiPercent()).isEqualByComparingTo("17.5");
 		assertThat(property.discountPercent()).isEqualByComparingTo("34.8");
 		assertThat(property.priceDropAmount()).isEqualByComparingTo("30000");
+		assertThat(property.lotSize()).isEqualTo(5000);
+		assertThat(property.hoaFee()).isEqualByComparingTo("125");
+		assertThat(property.status()).isEqualTo("Active");
+		assertThat(property.listingType()).isEqualTo("Standard");
+		assertThat(property.listedDate()).isEqualTo("2024-06-24");
+		assertThat(property.lastSeenDate()).isEqualTo("2024-09-30");
+		assertThat(property.mlsName()).isEqualTo("MiamiMLS");
+		assertThat(property.mlsNumber()).isEqualTo("A123456");
+		assertThat(property.listingAgentName()).isEqualTo("Jane Agent");
+		assertThat(property.listingOfficeName()).isEqualTo("Example Realty");
+		assertThat(property.historyEventCount()).isEqualTo(2);
 		assertThat(property.rehabRisk()).isEqualTo("Medium");
 		assertThat(property.flipScore()).isGreaterThanOrEqualTo(70);
 		assertThat(property.highlights()).contains("Estimated $68,500 profit", "Price dropped $30,000");

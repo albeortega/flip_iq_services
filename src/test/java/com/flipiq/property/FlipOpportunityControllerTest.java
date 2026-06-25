@@ -56,7 +56,21 @@ class FlipOpportunityControllerTest {
 								3,
 								new BigDecimal("2"),
 								1600,
+								5000,
 								1988,
+								new BigDecimal("125"),
+								"Active",
+								"Standard",
+								"2024-06-24",
+								"2024-09-30",
+								"MiamiMLS",
+								"A123456",
+								"Jane Agent",
+								"5551234567",
+								"jane@example.com",
+								"Example Realty",
+								"5557654321",
+								2,
 								25.7617,
 								-80.1918,
 								82,
@@ -72,6 +86,10 @@ class FlipOpportunityControllerTest {
 				.andExpect(jsonPath("$.sort").value("HIGHEST_PROFIT"))
 				.andExpect(jsonPath("$.properties[0].address").value("123 Main St, Miami, FL 33101"))
 				.andExpect(jsonPath("$.properties[0].estimatedProfit").value(68500))
+				.andExpect(jsonPath("$.properties[0].daysOnMarket").value(42))
+				.andExpect(jsonPath("$.properties[0].listedDate").value("2024-06-24"))
+				.andExpect(jsonPath("$.properties[0].mlsName").value("MiamiMLS"))
+				.andExpect(jsonPath("$.properties[0].historyEventCount").value(2))
 				.andExpect(jsonPath("$.properties[0].flipScore").value(82))
 				.andExpect(jsonPath("$.properties[0].recommendation").value("Strong Flip Candidate"));
 	}

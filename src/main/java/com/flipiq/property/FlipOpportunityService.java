@@ -172,7 +172,21 @@ public class FlipOpportunityService {
 				firstInteger(listing.get("bedrooms"), listing.get("beds")),
 				firstDecimal(listing.get("bathrooms"), listing.get("baths")),
 				livingArea,
+				firstInteger(listing.get("lotSize")),
 				yearBuilt,
+				firstDecimal(nestedValue(listing, "hoa", "fee")),
+				asString(listing.get("status")),
+				asString(listing.get("listingType")),
+				normalizeDate(asString(listing.get("listedDate"))),
+				normalizeDate(asString(listing.get("lastSeenDate"))),
+				asString(listing.get("mlsName")),
+				asString(listing.get("mlsNumber")),
+				asString(nestedValue(listing, "listingAgent", "name")),
+				asString(nestedValue(listing, "listingAgent", "phone")),
+				asString(nestedValue(listing, "listingAgent", "email")),
+				asString(nestedValue(listing, "listingOffice", "name")),
+				asString(nestedValue(listing, "listingOffice", "phone")),
+				historyEventCount(listing),
 				firstDouble(listing.get("latitude")),
 				firstDouble(listing.get("longitude")),
 				flipScore,
@@ -251,10 +265,34 @@ public class FlipOpportunityService {
 				listing.get("originalPrice"),
 				listing.get("initialListPrice"),
 				listing.get("previousPrice"));
+		BigDecimal historyHighPrice = historyHighPrice(listing);
+		if (historyHighPrice != null && (originalPrice == null || historyHighPrice.compareTo(originalPrice) > 0)) {
+			originalPrice = historyHighPrice;
+		}
 		if (originalPrice == null || listPrice == null) {
 			return BigDecimal.ZERO;
 		}
 		return originalPrice.subtract(listPrice).max(BigDecimal.ZERO);
+	}
+
+	@SuppressWarnings("unchecked")
+	private BigDecimal historyHighPrice(Map<String, Object> listing) {
+		Object history = listing.get("history");
+		if (!(history instanceof Map<?, ?> historyMap)) {
+			return null;
+		}
+
+		BigDecimal highPrice = null;
+		for (Object value : historyMap.values()) {
+			if (!(value instanceof Map<?, ?> event)) {
+				continue;
+			}
+			BigDecimal price = firstDecimal(((Map<String, Object>) event).get("price"));
+			if (price != null && (highPrice == null || price.compareTo(highPrice) > 0)) {
+				highPrice = price;
+			}
+		}
+		return highPrice;
 	}
 
 	private Integer daysOnMarket(Map<String, Object> listing) {
@@ -376,6 +414,23 @@ public class FlipOpportunityService {
 		return null;
 	}
 
+	@SuppressWarnings("unchecked")
+	private Object nestedValue(Map<String, Object> source, String objectKey, String valueKey) {
+		Object nested = source.get(objectKey);
+		if (!(nested instanceof Map<?, ?> nestedMap)) {
+			return null;
+		}
+		return ((Map<String, Object>) nestedMap).get(valueKey);
+	}
+
+	private Integer historyEventCount(Map<String, Object> listing) {
+		Object history = listing.get("history");
+		if (history instanceof Map<?, ?> historyMap) {
+			return historyMap.size();
+		}
+		return null;
+	}
+
 	private BigDecimal asBigDecimal(Object value) {
 		if (value instanceof BigDecimal decimal) {
 			return decimal;
@@ -395,6 +450,11 @@ public class FlipOpportunityService {
 
 	private String asString(Object value) {
 		return value instanceof String string ? string : null;
+	}
+
+	private String normalizeDate(String value) {
+		LocalDate date = parseDate(value);
+		return date == null ? null : date.toString();
 	}
 
 	private LocalDate firstDate(String... values) {
